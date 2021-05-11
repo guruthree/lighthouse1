@@ -133,9 +133,9 @@ void loop() {
   }
 
   if (updated) {
-    Serial.print(current_state.angle[SWEEP]);
-    Serial.print(", ");
     Serial.print(current_state.angle[CREEP]);
+    Serial.print(", ");
+    Serial.print(current_state.angle[SWEEP]);
     Serial.print("\n");
   }
 
