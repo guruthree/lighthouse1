@@ -1,6 +1,15 @@
+#ifndef TEENSYDUINO
+
+#define digitalReadFast digitalRead
+const int led = LED_BUILTIN;
+const int lighthouse = D7;
+
+#else
+
 const int led = 13;
 const int lighthouse = 12;
 
+#endif
 
 const long NUM_TIMINGS = 8;
 const long sync_timings[NUM_TIMINGS] = {63, 73, 83, 94, 104, 115, 125, 135};
@@ -33,7 +42,12 @@ LHData measured_pulses[BUFFER_LENGTH];
 long read_index = 0;
 long write_index = 0;
 
+#ifdef ESP8266
+void ICACHE_RAM_ATTR myinterrupt() {
+#else
 void myinterrupt() {
+#endif
+
   rightnow = micros();
   diff = rightnow - lasttime;
 
