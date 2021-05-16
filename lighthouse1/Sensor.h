@@ -6,7 +6,10 @@ class SensorBase
 public:
 // need virtual declarations of all member classes
   virtual void setup(void) = 0;
-  virtual boolean processPulse() = 0;
+  virtual boolean processPulses() = 0;
+  
+  virtual float getX() = 0;
+  virtual float getY() = 0;
 };
 
 template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
@@ -20,7 +23,7 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       Pulse() : pulse_start(0), pulse_length(0) {} // this should default to values of 0 when created
     };
 
-    enum AxisType {SWEEP, CREEP, NUM_AXIS}; // across, down 
+    enum AxisType {SWEEP, CREEP, NUM_AXIS}; // across, down
     static const uint8_t BUFFER_LENGTH = 8; // how many Pulses to store
     
     // state of pulse details (controlled by interrupt)
@@ -142,6 +145,13 @@ public:
     return updated;
   }
 
+  float getX() {
+    return current_state.angle[SWEEP];
+  }
+  
+  float getY() {
+    return current_state.angle[CREEP];
+  }
 };
 
 template<uint8_t SENSOR_PIN>
