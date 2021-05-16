@@ -47,7 +47,9 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
     static volatile SensorState current_state;
 
     static const uint8_t NUM_TIMINGS = 8;
-    static const uint8_t sync_timings[NUM_TIMINGS];
+//    static const uint8_t sync_timings[NUM_TIMINGS];
+    static const uint8_t sync_timings_low[NUM_TIMINGS];
+    static const uint8_t sync_timings_high[NUM_TIMINGS];
 
     static volatile uint8_t led; // flash something when receiving
 
@@ -90,18 +92,19 @@ public:
     attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), dointerrupt, CHANGE);
   }
 
-  virtual boolean processPulse() {
+  virtual boolean processPulses() {
 
     boolean updated = false;
   
     // this should be a while until we're caught up? to get the data, but only process timings for if read_index == write_index-1
     if (current_state.read_index != current_state.write_index) {
-      boolean identifiedPulse = false, skip, data, axis;
+      boolean identifiedPulse = false, skip, axis; // , data
       for (int c = 0; c < NUM_TIMINGS; c++) {
-        if (current_state.measured_pulses[current_state.read_index].pulse_length > sync_timings[c] - 4 && current_state.measured_pulses[current_state.read_index].pulse_length < sync_timings[c] + 4) {
+//        if (current_state.measured_pulses[current_state.read_index].pulse_length > sync_timings[c] - 4 && current_state.measured_pulses[current_state.read_index].pulse_length < sync_timings[c] + 4) {
+        if (current_state.measured_pulses[current_state.read_index].pulse_length > sync_timings_low[c] && current_state.measured_pulses[current_state.read_index].pulse_length < sync_timings_high[c]) {
           identifiedPulse = true;
           skip = (c >> 2) & 1;
-          data = (c >> 1) & 1;
+//          data = (c >> 1) & 1;
           axis = c & 1;
           break;
         }
@@ -155,8 +158,12 @@ public:
   }
 };
 
+//template<uint8_t SENSOR_PIN>
+//const uint8_t Sensor<SENSOR_PIN>::sync_timings[Sensor<SENSOR_PIN>::NUM_TIMINGS] = {63, 73, 83, 94, 104, 115, 125, 135};
 template<uint8_t SENSOR_PIN>
-const uint8_t Sensor<SENSOR_PIN>::sync_timings[Sensor<SENSOR_PIN>::NUM_TIMINGS] = {63, 73, 83, 94, 104, 115, 125, 135};
+const uint8_t Sensor<SENSOR_PIN>::sync_timings_low[Sensor<SENSOR_PIN>::NUM_TIMINGS] = {63-4, 73-4, 83-4, 94-4, 104-4, 115-4, 125-4, 135-4};
+template<uint8_t SENSOR_PIN>
+const uint8_t Sensor<SENSOR_PIN>::sync_timings_high[Sensor<SENSOR_PIN>::NUM_TIMINGS] = {63+4, 73+4, 83+4, 94+4, 104+4, 115+4, 125+4, 135+4};
 
 // volatile as the interrupt will be accessing in ways potentially unforseen by the compiler, so certain optimisations should be avoided
 // https://arduino.stackexchange.com/questions/76000/use-isrs-inside-a-library-more-elegantly
