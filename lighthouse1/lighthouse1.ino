@@ -16,16 +16,18 @@ const int lighthouse = 4;
 // after ifndef to catch the digitalFastRead define if needed
 #include "Sensor.h"
 Sensor<lighthouse> mySensor(led);
+Sensor<27> mySensor2(32);
 
 // the setup routine runs once when you press reset:
 void setup() {
   mySensor.setup();
+  mySensor2.setup();
   delay(500);
 
   Serial.begin(115200);
   delay(1000);
 
-  Serial.println("x1 y1");
+  Serial.println("x1 y1 x2 y2");
 }
 
 
@@ -33,14 +35,18 @@ void setup() {
 boolean updated;
 void loop() {
 
-  updated = mySensor.processPulses();
+  updated = mySensor.processPulses() | mySensor2.processPulses();
 
   if (updated) {
     Serial.print(mySensor.getX());
     Serial.print(", ");
     Serial.print(mySensor.getY());
+    Serial.print(", ");
+    Serial.print(mySensor2.getX());
+    Serial.print(", ");
+    Serial.print(mySensor2.getY());
     Serial.print("\n");
   }
 
-  delayMicroseconds(100);
+  delayMicroseconds(1);
 }
