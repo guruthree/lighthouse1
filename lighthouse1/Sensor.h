@@ -1,5 +1,6 @@
 
 //#define digitalReadFast digitalRead
+//#define digitalWriteFast digitalWrite
 
 class SensorBase
 {
@@ -69,7 +70,7 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       }
       current_state.lasttime = current_state.rightnow;
     
-      digitalWrite(led, HIGH);
+      digitalWriteFast(led, HIGH);
     }
 
 public:
@@ -139,7 +140,7 @@ public:
       if (current_state.read_index >= BUFFER_LENGTH)
         current_state.read_index = 0;
         
-      digitalWrite(led, LOW);
+      digitalWriteFast(led, LOW);
     }
       
     return updated;
