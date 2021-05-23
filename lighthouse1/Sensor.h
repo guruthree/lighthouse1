@@ -84,6 +84,8 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
 
     #ifdef ESP8266
     static void ICACHE_RAM_ATTR dointerrupt() {
+    #elif ESP32
+    static void IRAM_ATTR dointerrupt() {
     #else
     static void dointerrupt() {
     #endif
