@@ -1,6 +1,35 @@
+// reduce overhead on the IO pins
+#ifndef digitalReadFast
+  #ifdef ESP32
+    // from esp32-hal-gpio.c
+    #define digitalReadFast(pin) ((GPIO.in >> pin) & 0x1)
+    #warning "digitalReadFast will not work with pin number > 31)"
+  #else
+    #define digitalReadFast digitalRead
+  #endif
+#endif
 
-//#define digitalReadFast digitalRead
-//#define digitalWriteFast digitalWrite
+#ifndef digitalWriteFast
+  #ifdef ESP32
+    // from esp32-hal-gpio.c
+    #define digitalWriteFastHIGH(pin) {GPIO.out_w1ts = ((uint32_t)1 << pin);}
+    #define digitalWriteFastLOW(pin) {GPIO.out_w1tc = ((uint32_t)1 << pin);}
+    extern void digitalWriteFast(uint8_t pin, uint8_t val) {
+      if (val) {
+        digitalWriteFastHIGH(pin);
+      }
+      else {
+        digitalWriteFastLOW(pin);
+      }
+    }
+    #warning "digitalWriteFast will not work with pin number > 31)"
+  #else
+    #define digitalWriteFast digitalWrite
+  #endif
+#else
+  #define digitalWriteFastHIGH(pin) {digitalWriteFast(pin, HIGH);}
+  #define digitalWriteFastLOW(pin) {digitalWriteFast(pin, LOW);}
+#endif
 
 class SensorBase
 {
@@ -36,6 +65,7 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       unsigned long lasttime = 0; // the last time a pulse was receieved
       unsigned long rightnow = 0; // time of the interrupt
       unsigned long diff = 0; // difference from rising to falling
+      boolean pinstate = LOW;
     
       Pulse measured_pulses[BUFFER_LENGTH];
       uint8_t read_index = 0; // next Pulse to be written to
@@ -62,8 +92,8 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       current_state.rightnow = micros();
       current_state.diff = current_state.rightnow - current_state.lasttime;
     
-      boolean a = digitalReadFast(SENSOR_PIN);
-      if (a == LOW) {
+      current_state.pinstate = digitalReadFast(SENSOR_PIN);
+      if (current_state.pinstate == LOW) {
         current_state.measured_pulses[current_state.write_index].pulse_start = current_state.lasttime;
         current_state.measured_pulses[current_state.write_index].pulse_length = current_state.diff;
         current_state.write_index++;
@@ -72,7 +102,7 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       }
       current_state.lasttime = current_state.rightnow;
     
-      digitalWriteFast(led, HIGH);
+      digitalWriteFastHIGH(led);
     }
 
 public:
@@ -143,7 +173,7 @@ public:
       if (current_state.read_index >= BUFFER_LENGTH)
         current_state.read_index = 0;
         
-      digitalWriteFast(led, LOW);
+      digitalWriteFastLOW(led);
     }
       
     return updated;
