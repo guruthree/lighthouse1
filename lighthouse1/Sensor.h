@@ -127,6 +127,8 @@ public:
   
     // this should be a while until we're caught up? to get the data, but only process timings for if read_index == write_index-1
     if (current_state.read_index != current_state.write_index) {
+      current_state.read_index = current_state.write_index - 1;
+    
       boolean identifiedPulse = false, skip, axis; // , data
       for (int c = 0; c < NUM_TIMINGS; c++) {
         if (current_state.measured_pulses[current_state.read_index].pulse_length > sync_timings_low[c] && current_state.measured_pulses[current_state.read_index].pulse_length < sync_timings_high[c]) {
