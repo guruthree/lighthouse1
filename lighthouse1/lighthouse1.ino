@@ -90,6 +90,7 @@ SensorBase* sensors[NUM_SENSORS] = {&mySensor1, &mySensor2, &mySensor3};
                   break; // client disconnected
                 }
                 else if (recvd == 'Q') {
+                  while (mySensor1.isUpdating() && mySensor2.isUpdating() && mySensor3.isUpdating()) {} // don't send mid-update, TODO: generalise this
                   for (int c = 0; c < NUM_SENSORS; c++) {
                     t = sensors[c]->getX();
                     send(client_sock, (uint8_t*)&t, sizeof(float), MSG_DONTWAIT);
