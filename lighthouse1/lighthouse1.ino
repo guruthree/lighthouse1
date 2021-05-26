@@ -101,7 +101,7 @@ SensorBase* sensors[NUM_SENSORS] = {&mySensor1, &mySensor2, &mySensor3};
               close(client_sock);
             }
           
-          vTaskDelay(1/portTICK_PERIOD_MS); // sleep 1 ms
+          vTaskDelay(2/portTICK_PERIOD_MS); // sleep 2 ms
         } // while (1)
       }
     #elif ESP8266
@@ -117,7 +117,7 @@ SensorBase* sensors[NUM_SENSORS] = {&mySensor1, &mySensor2, &mySensor3};
     SensorBase* localSensor = (SensorBase*) pvParameters;
     while(1) {
       localSensor->processPulses();
-      vTaskDelay(1/portTICK_PERIOD_MS); // sleep 1 ms
+      vTaskDelay(4/portTICK_PERIOD_MS); // sleep 4 ms
     }
   }
 #endif
