@@ -20,9 +20,17 @@ The processing of sensor input occurs in code is a class structured into two hal
 
 ### Current status
 
-The code is currently tweaked for an ESP32, using tasks to spread out CPU load across both cores. An arbitrary number of sensors can be defined and for each sensor, the current x and y angle of the sensor relative to a single base station printed out, either over serial, HTTP, or a plain TCP connection. The last isn't setup for anything other than an ESP32.
+The code is currently tweaked for an ESP32, using tasks to spread out CPU load across both cores, but should fall back and work fine on other boards. An arbitrary number of sensors can be defined and for each sensor, the current x and y angle of the sensor relative to a single base station printed out, either over serial, HTTP, or a plain TCP connection. The last isn't setup for anything other than an ESP32.
 
 The code still would not be happy with two base stations running. Nothing is being done to improve accuracy. Testing suggests that if the sensor is closer than about a meter to the lighthouse tracking is lost, we suspect this is the op-amp becoming swamped out. The code currently does not interpret the data packet encoded by the lighthouse sweeps.
+
+### `#define`s
+
+The code has several `#ifdef`s to detect a Teensy, ESP8266, or ES32, with an else case for fallback code. You may want to check the fallback code if you're not using one of those three platforms. At the top of the main `ino` file you'll need to define the Sensors within an `#ifdef` block for these, as well as update the `#define NUM_SENSORS`.
+
+There are four manual `#defines` int the code that turn on/off different features. `PRINT_OVER_SERIAL` will have the sensor angle readings printing out via `Serial.print()`. On an ESP8266 or ESP32, `USE_WIFI` can be used to enable connecting to a WiFi network. In that instance, `PRINT_OVER_HTTP` will enable an HTTP server that can be queried for the sensor angles. `PRINT_OVER_TCP` sets up listening on TCP port 81. Sending a one byte packet `Q` will return number of sensors * 2 floats for x1, y1, x2, etc.
+
+For WiFi, you will need to create `wifidetails.h`, with `const char* ssid` and `const char* password` set to your access point's SSID and WPA pre-shared key.
 
 ## Notes on the circuit
 
