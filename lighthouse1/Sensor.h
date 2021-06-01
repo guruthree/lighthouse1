@@ -78,7 +78,7 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
     static const unsigned long sync_timings_low[NUM_TIMINGS];
     static const unsigned long sync_timings_high[NUM_TIMINGS];
 
-    static volatile uint8_t led; // flash something when receiving
+    static volatile int8_t led; // flash something when receiving
 
     boolean updating;
 
@@ -107,11 +107,22 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
           current_state.write_index = 0;
       }
       current_state.lasttime = current_state.rightnow;
-    
-      //digitalWriteFastHIGH(led);
+
+//      if (led) {
+//        digitalWriteFastHIGH(led);
+//      }
     }
 
 public:
+  Sensor() {
+    led = -1;
+    
+    // no way to initialise basic type array in cosntructor, so for loop it is
+    for (int i = 0; i < NUM_AXIS; i++) {
+      current_state.angle[i] = 0;
+    }
+  }
+
   Sensor(uint8_t _led) {
     led = _led; // static so can't be constructed inline
     
@@ -123,7 +134,9 @@ public:
 
   virtual void setup() {
     pinMode(SENSOR_PIN, INPUT);
-    pinMode(led, OUTPUT);
+    if (led) {
+      pinMode(led, OUTPUT);
+    }
     
     attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), dointerrupt, CHANGE);
   }
@@ -134,7 +147,9 @@ public:
   
     // this should be a while until we're caught up? to get the data, but only process timings for if read_index == write_index-1
     if (current_state.read_index != current_state.write_index) {
-      digitalWriteFastHIGH(led);
+      if (led) {
+        digitalWriteFastHIGH(led);
+      }
       current_state.read_index = current_state.write_index - 1;
     
       boolean identifiedPulse = false, skip, axis; // , data
@@ -181,7 +196,9 @@ public:
       if (current_state.read_index >= BUFFER_LENGTH)
         current_state.read_index = 0;
         
-      digitalWriteFastLOW(led);
+      if (led) {
+        digitalWriteFastLOW(led);
+      }
     }
       
     updating = false;
@@ -213,4 +230,4 @@ template<uint8_t SENSOR_PIN>
 volatile typename Sensor<SENSOR_PIN>::SensorState Sensor<SENSOR_PIN>::current_state;
 
 template<uint8_t SENSOR_PIN>
-volatile uint8_t Sensor<SENSOR_PIN>::led;
+volatile int8_t Sensor<SENSOR_PIN>::led;
