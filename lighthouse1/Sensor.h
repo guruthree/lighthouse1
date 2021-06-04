@@ -69,7 +69,8 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
     };
 
     enum AxisType {SWEEP, CREEP, NUM_AXIS}; // across, down
-    static const uint8_t BUFFER_LENGTH = 8; // how many Pulses to store
+    static const uint8_t BUFFER_LENGTH = ~0; // how many Pulses to store
+    // since we're relying in integer overflow wrapping, this BUFFER_LENGTH should be the maximum size of the type
     
     // state of pulse details (controlled by interrupt)
     struct SensorState {
@@ -80,7 +81,7 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       sensor_time_t lasttime = 0; // the last time a pulse was receieved
       sensor_time_t rightnow = 0; // time of the interrupt
     
-      Pulse measured_pulses[BUFFER_LENGTH];
+      Pulse measured_pulses[(uint16_t)BUFFER_LENGTH+1];
       uint8_t read_index = 0; // next Pulse to be written to
       uint8_t write_index = 0; // next Pulse to be read from
 
@@ -115,9 +116,7 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       if (digitalReadFast(SENSOR_PIN) == LOW) {        
         current_state.measured_pulses[current_state.write_index].pulse_start = current_state.lasttime;
         current_state.measured_pulses[current_state.write_index].pulse_length = current_state.rightnow - current_state.lasttime;
-        current_state.write_index++;
-        if (current_state.write_index >= BUFFER_LENGTH) // intentionally use uint8_t wrapping?
-          current_state.write_index = 0;
+        current_state.write_index++; // rely on integer overflow to wrap index
       }
       current_state.lasttime = current_state.rightnow;
 
@@ -211,9 +210,7 @@ public:
 //      if (!identifiedPulse) {
 //      }
 
-      current_state.read_index++;
-      if (current_state.read_index >= BUFFER_LENGTH)
-        current_state.read_index = 0;
+      current_state.read_index++; // rely on integer overflow to wrap index
         
       if (led) {
         digitalWriteFastLOW(led);
