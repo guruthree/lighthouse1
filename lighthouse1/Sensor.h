@@ -38,6 +38,14 @@
   #define sensor_time_t unsigned long
 #endif
 
+#ifdef ESP8266 // nanoseconds to ticks
+  #define TIMING_MULTIPLER /6.25
+#elif ESP32 // nanoseconds to ticks
+  #define TIMING_MULTIPLER /4
+#else // nanosecond timings to microsecond timings to match micros()
+  #define TIMING_MULTIPLER /1000
+#endif
+
 class SensorBase
 {
 public:
@@ -98,12 +106,10 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
     #endif
 
 
-      #ifdef ESP8266
-        current_state.rightnow = (ESP.getCycleCount()) * 6.25; // 6.25 ticks per ns (may be faster to just use micros?)
-      #elif ESP32
-        current_state.rightnow = (ESP.getCycleCount()) << 2; // 4 ticks per ns
+      #if defined(ESP32) || defined(ESP8266)
+        current_state.rightnow = ESP.getCycleCount();
       #else
-        current_state.rightnow = micros()*1000; // ns timings
+        current_state.rightnow = micros();
       #endif
     
       if (digitalReadFast(SENSOR_PIN) == LOW) {        
@@ -146,6 +152,12 @@ public:
     }
     
     attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), dointerrupt, CHANGE);
+
+//    for (int c=0; c < NUM_TIMINGS; c++) {
+//      Serial.print(sync_timings_low[c]);
+//      Serial.print(" ");
+//      Serial.println(sync_timings_high[c]);
+//    }
   }
 
   virtual boolean processPulses() {
@@ -179,18 +191,18 @@ public:
         }
       }
       else { // maybe it's a beep (sweep/creep timing)
-        if (current_state.measured_pulses[current_state.read_index].pulse_length < 20000) { // a bit bigger because depending on funny angles the beam may be a bit wider? hopefully better closer and at extreme angles
+        if (current_state.measured_pulses[current_state.read_index].pulse_length < (20000 TIMING_MULTIPLER)) { // a bit bigger because depending on funny angles the beam may be a bit wider? hopefully better closer and at extreme angles
           identifiedPulse = true;
   
           sensor_time_t relative_time = (current_state.measured_pulses[current_state.read_index].pulse_start - current_state.sync_pulse_start);
-          if (relative_time < 1222222 || relative_time > 6777777) {
+          if (relative_time < (1222222 TIMING_MULTIPLER) || relative_time > (6777777 TIMING_MULTIPLER)) {
             // do nothing for now, this is likely an impossible reading
           }
           else {
-            relative_time = relative_time - 1222222; // how far into the acceptable window of the beep are we?
+            relative_time = relative_time - 1222222 TIMING_MULTIPLER; // how far into the acceptable window of the beep are we?
             //relative_time = relative_time + 400; // testing if it's the 2nd lighthouse...
             // the beep is 5555 long, and that 5555 is 120 degrees, so work out the fraction of the 5555, map that to 120, then offset by 0 so 0 degrees is the centre
-            current_state.angle[current_state.active_axis] = (relative_time / 5555555.0) * 120.0 - 60.0;
+            current_state.angle[current_state.active_axis] = (relative_time / (5555555.0 TIMING_MULTIPLER)) * 120.0 - 60.0;
             updated = true;
           }
         }
@@ -225,11 +237,14 @@ public:
   }
 };
 
-#define SYNC_WINDOW 4500
+
+#define SYNC_WINDOW 4500 TIMING_MULTIPLER
 template<uint8_t SENSOR_PIN>
-const sensor_time_t Sensor<SENSOR_PIN>::sync_timings_low[Sensor<SENSOR_PIN>::NUM_TIMINGS] = {62500-SYNC_WINDOW, 72900-SYNC_WINDOW, 83300-SYNC_WINDOW, 93800-SYNC_WINDOW, 104000-SYNC_WINDOW, 115000-SYNC_WINDOW, 125000-SYNC_WINDOW, 135000-SYNC_WINDOW};
+const sensor_time_t Sensor<SENSOR_PIN>::sync_timings_low[Sensor<SENSOR_PIN>::NUM_TIMINGS] = {62500 TIMING_MULTIPLER - SYNC_WINDOW, 72900 TIMING_MULTIPLER - SYNC_WINDOW, 83300 TIMING_MULTIPLER - SYNC_WINDOW, 
+93800 TIMING_MULTIPLER - SYNC_WINDOW, 104000 TIMING_MULTIPLER - SYNC_WINDOW, 115000 TIMING_MULTIPLER - SYNC_WINDOW, 125000 TIMING_MULTIPLER - SYNC_WINDOW, 135000 TIMING_MULTIPLER - SYNC_WINDOW};
 template<uint8_t SENSOR_PIN>
-const sensor_time_t Sensor<SENSOR_PIN>::sync_timings_high[Sensor<SENSOR_PIN>::NUM_TIMINGS] = {62500+SYNC_WINDOW, 72900+SYNC_WINDOW, 83300+SYNC_WINDOW, 93800+SYNC_WINDOW, 104000+SYNC_WINDOW, 115000+SYNC_WINDOW, 125000+SYNC_WINDOW, 135000+SYNC_WINDOW};
+const sensor_time_t Sensor<SENSOR_PIN>::sync_timings_high[Sensor<SENSOR_PIN>::NUM_TIMINGS] = {62500 TIMING_MULTIPLER + SYNC_WINDOW, 72900 TIMING_MULTIPLER + SYNC_WINDOW, 83300 TIMING_MULTIPLER + SYNC_WINDOW, 
+93800 TIMING_MULTIPLER + SYNC_WINDOW, 104000 TIMING_MULTIPLER + SYNC_WINDOW, 115000 TIMING_MULTIPLER + SYNC_WINDOW, 125000 TIMING_MULTIPLER + SYNC_WINDOW, 135000 TIMING_MULTIPLER + SYNC_WINDOW};
 
 // volatile as the interrupt will be accessing in ways potentially unforseen by the compiler, so certain optimisations should be avoided
 // https://arduino.stackexchange.com/questions/76000/use-isrs-inside-a-library-more-elegantly
