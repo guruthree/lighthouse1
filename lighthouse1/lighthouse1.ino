@@ -44,6 +44,7 @@ SensorBase* sensors[NUM_SENSORS] = {&mySensor1, &mySensor2, &mySensor3};
           sensors[c]->getX(),
           sensors[c]->getY()
         );
+        yield();
       }
     #if ESP32
       request->send(200, "text/plain", outString);
