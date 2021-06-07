@@ -1,6 +1,7 @@
 #include "Sensor.h"
 
 #define PRINT_OVER_SERIAL 1
+#define PRINT_OVER_LCD 0
 #define USE_WIFI 0
 #define PRINT_OVER_HTTP 0
 #define PRINT_OVER_TCP 0
@@ -20,6 +21,32 @@
 #endif
 
 SensorBase* sensors[NUM_SENSORS] = {&mySensor1, &mySensor2, &mySensor3};
+
+#if PRINT_OVER_LCD == 1
+  #include <Adafruit_GFX.h>
+  #include <Adafruit_ST7789.h>
+  #include <SPI.h>
+  #define TFT_CS   D13
+  #define TFT_RST  D12
+  #define TFT_DC   D11
+
+  #define DISPLAY_WIDTH 135
+  #define DISPLAY_HEIGHT 240
+  
+  Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+  static const uint16_t colors[NUM_SENSORS][2] = {
+    {ST77XX_RED, tft.color565(233, 22, 100)}, 
+    {ST77XX_GREEN, tft.color565(0, 156, 32)},
+    {ST77XX_BLUE, tft.color565(40, 157, 255)}
+  };
+  uint8_t updatecount = 0;
+  #define TFT_REFRESH 4
+  int16_t oldvalues[NUM_SENSORS][2][DISPLAY_WIDTH]; // for graph
+  #define GRAPH_VERTICAL 119
+  #define GRAPH_ZERO 120
+
+  GFXcanvas16 buffercanvas(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+#endif
 
 #if USE_WIFI == 1
   #include <WiFi.h>
@@ -131,6 +158,12 @@ void setup() {
 
   Serial.begin(115200);
   delay(500);
+  
+#if PRINT_OVER_LCD == 1
+  tft.init(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+  tft.setSPISpeed(40e6); // 80 MHz is top speed of ESP-32?
+  tft.fillScreen(ST77XX_RED);
+#endif
 
 #if USE_WIFI == 1
   WiFi.mode(WIFI_STA);
@@ -183,6 +216,10 @@ void setup() {
 #endif
   
   digitalWrite(LED_BUILTIN, LOW); // LED off means we're ready
+#if PRINT_OVER_LCD == 1
+//  tft.fillScreen(ST77XX_BLUE);
+  tft.fillScreen(ST77XX_BLACK);
+#endif
 }
 
 // the loop routine runs over and over again forever:
@@ -202,6 +239,42 @@ void loop() {
     Serial.print(", ");
   }
   Serial.print("\n");
+#endif
+
+#if PRINT_OVER_LCD == 1
+  if (updatecount == TFT_REFRESH) {
+    updatecount = 0;
+
+    buffercanvas.setCursor(0, 0);
+    buffercanvas.setTextSize(2);
+    buffercanvas.fillScreen(ST77XX_BLACK);
+    float tf;
+    for (int c = 0; c < NUM_SENSORS; c++) {
+      buffercanvas.setTextColor(colors[c][0], ST77XX_BLACK);
+      tf = sensors[c]->getX();
+      buffercanvas.println(tf);
+      oldvalues[c][0][DISPLAY_WIDTH-1] = (-tf/45.0f)*GRAPH_VERTICAL;
+      
+      buffercanvas.setTextColor(colors[c][1], ST77XX_BLACK);
+      tf = sensors[c]->getY();
+      buffercanvas.print(" ");
+      buffercanvas.println(tf);
+      oldvalues[c][1][DISPLAY_WIDTH-1] = (-tf/45.0f)*GRAPH_VERTICAL;
+    }
+
+    // draw graph
+    for (uint8_t d = 1; d < DISPLAY_WIDTH; d++) {
+      for (uint8_t c = 0; c < NUM_SENSORS; c++) {
+        buffercanvas.drawLine(d-1, GRAPH_ZERO+oldvalues[c][0][d-1], d, GRAPH_ZERO+oldvalues[c][0][d], colors[c][0]);
+        oldvalues[c][0][d-1] = oldvalues[c][0][d];
+        buffercanvas.drawLine(d-1, GRAPH_ZERO+oldvalues[c][1][d-1], d, GRAPH_ZERO+oldvalues[c][1][d], colors[c][1]);
+        oldvalues[c][1][d-1] = oldvalues[c][1][d];
+      }
+    }
+
+    tft.drawRGBBitmap(0, 0, buffercanvas.getBuffer(), DISPLAY_WIDTH, DISPLAY_HEIGHT);    
+  }
+  updatecount++;
 #endif
 
   delay(8); // 120 Hz?
