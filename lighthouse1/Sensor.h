@@ -64,8 +64,9 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
     // pulse start times and lengths (in micros())
     struct Pulse { // BEEP
       sensor_time_t pulse_start;
+      sensor_time_t pulse_end;
       sensor_time_t pulse_length; // should maybe change this to pulse_end to avoid some math in the interrupt?
-      Pulse() : pulse_start(0), pulse_length(0) {} // this should default to values of 0 when created
+      Pulse() : pulse_start(0), pulse_end(0), pulse_length(0) {} // this should default to values of 0 when created
     };
 
     enum AxisType {SWEEP, CREEP, NUM_AXIS}; // across, down
@@ -78,7 +79,6 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       AxisType active_axis = SWEEP; // the direction the most recent pulse went
 
       // working variables pre-declared for faster operation
-      sensor_time_t lasttime = 0; // the last time a pulse was receieved
       sensor_time_t rightnow = 0; // time of the interrupt
     
       Pulse measured_pulses[(uint16_t)BUFFER_LENGTH+1];
@@ -112,20 +112,20 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
       #else
         current_state.rightnow = micros();
       #endif
-    
-      if (digitalReadFast(SENSOR_PIN) == LOW) {        
-        current_state.measured_pulses[current_state.write_index].pulse_start = current_state.lasttime;
-        current_state.measured_pulses[current_state.write_index].pulse_length = current_state.rightnow - current_state.lasttime;
+
+      if (digitalReadFast(SENSOR_PIN) == HIGH) {        
+        current_state.measured_pulses[current_state.write_index].pulse_start = current_state.rightnow;
+      }
+      else {
+        current_state.measured_pulses[current_state.write_index].pulse_end = current_state.rightnow;
         current_state.write_index++; // rely on integer overflow to wrap index
       }
-      current_state.lasttime = current_state.rightnow;
-
-//      if (led) {
-//        digitalWriteFastHIGH(led);
-//      }
+      
     }
 
+
 public:
+
   Sensor() {
     led = -1;
     
@@ -169,6 +169,8 @@ public:
         digitalWriteFastHIGH(led);
       }
       current_state.read_index = current_state.write_index - 1;
+
+      current_state.measured_pulses[current_state.read_index].pulse_length = current_state.measured_pulses[current_state.read_index].pulse_end - current_state.measured_pulses[current_state.read_index].pulse_start;
     
       boolean identifiedPulse = false, skip, axis; // , data
       for (int c = 0; c < NUM_TIMINGS; c++) {
