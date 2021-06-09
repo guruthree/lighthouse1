@@ -90,6 +90,7 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
     };
     
     static volatile SensorState current_state;
+    boolean receivedData[BUFFER_LENGTH];
 
     static const uint8_t NUM_TIMINGS = 8;
     static const sensor_time_t sync_timings_low[NUM_TIMINGS];
@@ -133,6 +134,10 @@ public:
     for (int i = 0; i < NUM_AXIS; i++) {
       current_state.angle[i] = 0;
     }
+
+    for (int i = 0; i < BUFFER_LENGTH; i++) {
+      receivedData[i] = 0;
+    }
   }
 
   Sensor(uint8_t _led) {
@@ -141,6 +146,10 @@ public:
     // no way to initialise basic type array in cosntructor, so for loop it is
     for (int i = 0; i < NUM_AXIS; i++) {
       current_state.angle[i] = 0;
+    }
+
+    for (int i = 0; i < BUFFER_LENGTH; i++) {
+      receivedData[i] = 0;
     }
   }
 
@@ -158,11 +167,10 @@ public:
     boolean updated = false;
   
     // this should be a while until we're caught up? to get the data, but only process timings for if read_index == write_index-1
-    if (current_state.read_index != current_state.write_index) {
+    while (current_state.read_index != current_state.write_index) {
       if (led) {
         digitalWriteFastHIGH(led);
       }
-      current_state.read_index = current_state.write_index - 1;
 
       current_state.measured_pulses[current_state.read_index].pulse_length = current_state.measured_pulses[current_state.read_index].pulse_end - current_state.measured_pulses[current_state.read_index].pulse_start;
     
@@ -171,7 +179,7 @@ public:
         if (current_state.measured_pulses[current_state.read_index].pulse_length > sync_timings_low[c] && current_state.measured_pulses[current_state.read_index].pulse_length < sync_timings_high[c]) {
           identifiedPulse = true;
           skip = (c >> 2) & 1;
-//          data = (c >> 1) & 1;
+          receivedData[current_state.read_index] = (c >> 1) & 1;
           axis = c & 1;
           break;
         }
@@ -205,6 +213,7 @@ public:
   
       if (!identifiedPulse) {
         digitalWriteFastHIGH(LED_BUILTIN);
+        receivedData[current_state.read_index] = 0;
       }
 
       current_state.read_index++; // rely on integer overflow to wrap index
@@ -216,6 +225,37 @@ public:
       
     updating = false;
     return updated;
+  }
+
+  void printReceivedData() {
+    char outstr[BUFFER_LENGTH+1];
+    for (int i = 0; i <= BUFFER_LENGTH; i++) {
+      outstr[i] = 0;
+    }
+
+    boolean good = false;
+    int j;
+    for (int i = 0; i < BUFFER_LENGTH-1 && good == false; i++) {
+      for (j = i; j < BUFFER_LENGTH; j++) {
+        if (receivedData[j]) {
+          if ((j-i) == 17) { // look for 17 bits of 0 before 1 bit of 1
+            good = true;
+          }
+          break;
+        }
+      }
+    }
+    
+    if (good) { // there was a preamble, so the data is in there somewhere
+      int stridx = 0;
+      for (int i = j-17; i < BUFFER_LENGTH; i++) {
+        if (receivedData[i] == 1)
+          outstr[stridx++] = '1';
+        else
+          outstr[stridx++] = '0';
+      }
+      Serial.println(outstr);
+    }
   }
 
   float getX() {

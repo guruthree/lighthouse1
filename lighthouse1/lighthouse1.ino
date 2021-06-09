@@ -146,7 +146,7 @@ SensorBase* sensors[NUM_SENSORS] = {&mySensor1, &mySensor2, &mySensor3};
     SensorBase* localSensor = (SensorBase*) pvParameters;
     while(1) {
       localSensor->processPulses();
-      vTaskDelay(4/portTICK_PERIOD_MS); // sleep 4 ms
+      vTaskDelay(2/portTICK_PERIOD_MS); // sleep 2 ms
     }
   }
 #endif
@@ -278,6 +278,7 @@ void loop() {
 #endif
 
   digitalWriteFastLOW(LED_BUILTIN);
+//  mySensor1.printReceivedData();
 
   delay(8); // 120 Hz?
   yield();
