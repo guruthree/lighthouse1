@@ -46,6 +46,7 @@
   #define TIMING_MULTIPLER /1000
 #endif
 
+
 class SensorBase
 {
 public:
@@ -151,12 +152,6 @@ public:
     }
     
     attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), dointerrupt, CHANGE);
-
-//    for (int c=0; c < NUM_TIMINGS; c++) {
-//      Serial.print(sync_timings_low[c]);
-//      Serial.print(" ");
-//      Serial.println(sync_timings_high[c]);
-//    }
   }
 
   virtual boolean processPulses() {
