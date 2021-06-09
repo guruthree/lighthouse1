@@ -107,7 +107,6 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
     static void dointerrupt() {
     #endif
 
-
       #if defined(ESP32) || defined(ESP8266)
         current_state.rightnow = ESP.getCycleCount();
       #else
