@@ -277,6 +277,8 @@ void loop() {
   updatecount++;
 #endif
 
+  digitalWriteFastLOW(LED_BUILTIN);
+
   delay(8); // 120 Hz?
   yield();
 }

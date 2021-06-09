@@ -203,8 +203,9 @@ public:
         }
       }
   
-//      if (!identifiedPulse) {
-//      }
+      if (!identifiedPulse) {
+        digitalWriteFastHIGH(LED_BUILTIN);
+      }
 
       current_state.read_index++; // rely on integer overflow to wrap index
         
