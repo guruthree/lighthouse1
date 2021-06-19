@@ -35,7 +35,7 @@ SensorBase* sensors[NUM_SENSORS] = {&mySensor1, &mySensor2, &mySensor3};
   
   Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
   static const uint16_t colors[NUM_SENSORS][2] = {
-    {ST77XX_RED, tft.color565(233, 22, 100)}, 
+    {ST77XX_RED, tft.color565(233, 22, 80)}, 
     {ST77XX_GREEN, tft.color565(0, 156, 32)},
     {ST77XX_BLUE, tft.color565(40, 157, 255)}
   };
