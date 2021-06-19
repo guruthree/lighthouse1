@@ -43,9 +43,11 @@ The version of the circuit we have made uses the TLV2462CP instead of the TLV246
 Current testing is being carried out with a [FireBeetle ESP32-E](https://wiki.dfrobot.com/FireBeetle_Board_ESP32_E_SKU_DFR0654) board. We were previously using a [Teensy 3.5](https://www.pjrc.com/store/teensy35.html), but the ability to go wireless with a tracking sensor is pretty useful. Testing with the two different microcontrollers suggests that any sufficiently fast microprocessor using the Arduino IDE should be compatible with the current code base. With some porting a the RP2040 should would also likely work.
 
 With regards to circuit modifications, we believe there are a couple possible alternative op-amps that will work as well, the TSV912 and MCP6282. They are both a bit cheaper than the TLV2462. We think some of the sensor swamping out and distance values can be tweaked by adjusting the capacitance on the input of the first op-amp and the resistor ratio affecting gain on the second op-amp. This seems reasonable considering these other similar circuits:
+
 * [Trammell Hudson](https://trmm.net/Lighthouse/) gives a similar lighthouse receiver circuit.
 * [Analog Zoo](http://www.analogzoo.com/2016/08/photodiode-amplifier-design/) has designed a similar IR receiver circuit, providing a very good explanation for the circuit components.
 * [solinvictus21](https://github.com/solinvictus21/Zippies/tree/master/LighthouseCircuit) also gives a similar lighthouse receiver circuit
+
 All three have used a 2p2 uF capacitors to dampen the input op-amps tendency to oscillate (this explanation may be incorrect, apologies). The have gains that I think are like 220x, 68x, and 100x respectively, as opposed to the 16x currently used.
 
 Version 2b:
