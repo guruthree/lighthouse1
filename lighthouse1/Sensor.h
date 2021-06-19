@@ -194,10 +194,11 @@ public:
         }
       }
       else { // maybe it's a beep (sweep/creep timing)
-        if (current_state.measured_pulses[current_state.read_index].pulse_length < (20000 TIMING_MULTIPLER)) { // a bit bigger because depending on funny angles the beam may be a bit wider? hopefully better closer and at extreme angles
+        if (current_state.measured_pulses[current_state.read_index].pulse_length < (15000 TIMING_MULTIPLER)) { // a bit bigger because depending on funny angles the beam may be a bit wider? hopefully better closer and at extreme angles
           identifiedPulse = true;
   
-          sensor_time_t relative_time = (current_state.measured_pulses[current_state.read_index].pulse_start - current_state.sync_pulse_start);
+          // centre of the pulse
+          sensor_time_t relative_time = (current_state.measured_pulses[current_state.read_index].pulse_start  + current_state.measured_pulses[current_state.read_index].pulse_length/2) - current_state.sync_pulse_start;
           if (relative_time < (1222222 TIMING_MULTIPLER) || relative_time > (6777777 TIMING_MULTIPLER)) {
             // do nothing for now, this is likely an impossible reading
           }
