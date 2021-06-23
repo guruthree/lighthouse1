@@ -88,9 +88,11 @@ template<uint8_t SENSOR_PIN> class Sensor: public SensorBase
 
       float angle[NUM_AXIS]; // the current angle readings
     };
-    
     static volatile SensorState current_state;
-    boolean receivedData[BUFFER_LENGTH];
+
+    static const uint16_t OOTX_BUFFER_LENGTH = 1024; // estimated packet length is 358 bits?
+    boolean OOTXreceivedData[OOTX_BUFFER_LENGTH];
+    uint16_t OOTXreceivedPosition = 0;
 
     static const uint8_t NUM_TIMINGS = 8;
     static const sensor_time_t sync_timings_low[NUM_TIMINGS];
@@ -135,8 +137,8 @@ public:
       current_state.angle[i] = 0;
     }
 
-    for (int i = 0; i < BUFFER_LENGTH; i++) {
-      receivedData[i] = 0;
+    for (int i = 0; i < OOTX_BUFFER_LENGTH; i++) {
+      OOTXreceivedData[i] = 0;
     }
   }
 
@@ -148,8 +150,8 @@ public:
       current_state.angle[i] = 0;
     }
 
-    for (int i = 0; i < BUFFER_LENGTH; i++) {
-      receivedData[i] = 0;
+    for (int i = 0; i < OOTX_BUFFER_LENGTH; i++) {
+      OOTXreceivedData[i] = 0;
     }
   }
 
@@ -179,7 +181,7 @@ public:
         if (current_state.measured_pulses[current_state.read_index].pulse_length > sync_timings_low[c] && current_state.measured_pulses[current_state.read_index].pulse_length < sync_timings_high[c]) {
           identifiedPulse = true;
           skip = (c >> 2) & 1;
-          receivedData[current_state.read_index] = (c >> 1) & 1;
+          OOTXreceivedData[OOTXreceivedPosition++] = (c >> 1) & 1;
           axis = c & 1;
           break;
         }
@@ -214,10 +216,13 @@ public:
   
       if (!identifiedPulse) {
         digitalWriteFastHIGH(LED_BUILTIN);
-        receivedData[current_state.read_index] = 0;
       }
 
       current_state.read_index++; // rely on integer overflow to wrap index
+
+      if (OOTXreceivedPosition == OOTX_BUFFER_LENGTH) {
+        OOTXreceivedPosition = 0;
+      }
         
       if (led) {
         digitalWriteFastLOW(led);
@@ -228,19 +233,23 @@ public:
     return updated;
   }
 
-  void printReceivedData() {
-    char outstr[BUFFER_LENGTH+1];
-    for (int i = 0; i <= BUFFER_LENGTH; i++) {
+  // also check if + 17 bits is also 1?
+  void printOOTXreceivedData() {
+    char outstr[OOTX_BUFFER_LENGTH+1];
+    for (int i = 0; i <= OOTX_BUFFER_LENGTH; i++) {
       outstr[i] = 0;
     }
 
     boolean good = false;
     int j;
-    for (int i = 0; i < BUFFER_LENGTH-1 && good == false; i++) {
-      for (j = i; j < BUFFER_LENGTH; j++) {
-        if (receivedData[j]) {
+    for (int i = 0; i < OOTX_BUFFER_LENGTH-1 && good == false; i++) {
+      for (j = i; j < OOTX_BUFFER_LENGTH; j++) {
+        if (OOTXreceivedData[j]) {
           if ((j-i) == 17) { // look for 17 bits of 0 before 1 bit of 1
-            good = true;
+            if (j < OOTX_BUFFER_LENGTH - 400 && OOTXreceivedData[j+17]) {
+              // entire packet is probably ahead in memory and the every 16 bit sync bit is 1 as correct
+              good = true;
+            }
           }
           break;
         }
@@ -249,8 +258,8 @@ public:
     
     if (good) { // there was a preamble, so the data is in there somewhere
       int stridx = 0;
-      for (int i = j-17; i < BUFFER_LENGTH; i++) {
-        if (receivedData[i] == 1)
+      for (int i = j-17; i < OOTX_BUFFER_LENGTH; i++) {
+        if (OOTXreceivedData[i] == 1)
           outstr[stridx++] = '1';
         else
           outstr[stridx++] = '0';
